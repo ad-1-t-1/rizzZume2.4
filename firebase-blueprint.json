@@ -1,0 +1,68 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Pointer": {
+      "title": "Pointer",
+      "description": "A structured career experience entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string", "enum": ["Work", "Internship", "Project", "Achievement", "Skill", "Hobby"] },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "isCurrent": { "type": "boolean" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "bulletPoints": { "type": "array", "items": { "type": "string" } },
+        "privateNotes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "category"]
+    },
+    "Resume": {
+      "title": "Resume",
+      "description": "A generated resume",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "targetRole": { "type": "string" },
+        "jobDescription": { "type": "string" },
+        "templateId": { "type": "string" },
+        "pointerIds": { "type": "array", "items": { "type": "string" } },
+        "customizedBullets": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/users/{userId}/pointers/{pointerId}": {
+      "schema": "Pointer",
+      "description": "User career pointers"
+    },
+    "/users/{userId}/resumes/{resumeId}": {
+      "schema": "Resume",
+      "description": "User generated resumes"
+    }
+  }
+}

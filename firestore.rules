@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: /users/{userId}
+    // Fields: uid, email, displayName, photoURL, createdAt
+    //
+    // Collection: /users/{userId}/pointers/{pointerId}
+    // Fields: id, userId, title, description, category, startDate, endDate, isCurrent, tags, bulletPoints, privateNotes, createdAt
+    //
+    // Collection: /users/{userId}/resumes/{resumeId}
+    // Fields: id, userId, name, targetRole, jobDescription, templateId, pointerIds, customizedBullets, createdAt
+    //
+    // ===============================================================
+
+    // Collection: /users/{userId}/work_documents/{docId}
+    // Fields: id, userId, title, fileName, fileType, content, createdAt
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid == request.auth.uid &&
+             (data.email == "" || isValidEmail(data.email));
+    }
+
+    function isValidPointer(data) {
+      return data.keys().hasAll(['userId', 'title', 'category']) &&
+             data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 500 &&
+             data.category is string && data.category.size() > 0 &&
+             (!('documentIds' in data) || data.documentIds is list);
+    }
+
+    function isValidResume(data) {
+      return data.keys().hasAll(['userId', 'name']) &&
+             data.userId == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 200;
+    }
+
+    function isValidWorkDocument(data) {
+      return data.keys().hasAll(['userId', 'title', 'content']) &&
+             data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 &&
+             data.content is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+
+      match /pointers/{pointerId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidPointer(request.resource.data);
+        allow update: if isOwner(userId) && isValidPointer(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /resumes/{resumeId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidResume(request.resource.data);
+        allow update: if isOwner(userId) && isValidResume(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /work_documents/{docId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidWorkDocument(request.resource.data);
+        allow update: if isOwner(userId) && isValidWorkDocument(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
